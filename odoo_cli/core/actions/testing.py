@@ -112,6 +112,7 @@ def run_tests(
         runner.info(f"--all-verbose: guardando reportes en {logs_dir}/")
 
     cmd = [
+        sys.executable,
         str(Path(base_path) / "scripts" / "odoo-test"),
         args.module,
         "--container", container,

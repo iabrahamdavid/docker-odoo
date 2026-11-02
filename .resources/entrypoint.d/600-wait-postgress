@@ -16,7 +16,7 @@ WAIT_PG_TIMEOUT="${WAIT_PG_TIMEOUT:-300}"
 
 db_is_listening() {
     local waited=0
-    until psql --list > /dev/null 2>&1; do
+    until pg_isready > /dev/null 2>&1 || psql postgres -c "SELECT 1" > /dev/null 2>&1; do
         waited=$((waited + 1))
         if [ "$waited" -ge "$WAIT_PG_TIMEOUT" ]; then
             echo "ERROR: Postgres no respondio en ${WAIT_PG_TIMEOUT}s, abortando arranque." > /dev/stderr
