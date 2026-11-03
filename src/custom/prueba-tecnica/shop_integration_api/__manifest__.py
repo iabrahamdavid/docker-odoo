@@ -16,7 +16,9 @@ Módulo de integración REST que permite a una tienda en línea externa:
         "sale_management",
         "stock",
     ],
-    "data": [],
+    "data": [
+        "security/ir.model.access.csv",
+    ],
     "installable": True,
     "application": True,
     "license": "LGPL-3",

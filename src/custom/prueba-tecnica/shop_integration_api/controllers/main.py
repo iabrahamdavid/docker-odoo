@@ -1,6 +1,7 @@
 from datetime import datetime
 from odoo import http
 from odoo.http import request
+from .auth import api_endpoint
 
 
 class ShopProductApiController(http.Controller):
@@ -8,10 +9,11 @@ class ShopProductApiController(http.Controller):
     @http.route(
         "/api/v1/products",
         type="http",
-        auth="user",
+        auth="public",
         methods=["GET"],
         csrf=False,
     )
+    @api_endpoint(require_auth=True)
     def get_products(self, **kwargs):
         """Devuelve el catálogo de productos activos para la venta con stock y filtros."""
         domain = [
