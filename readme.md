@@ -1,5 +1,17 @@
 # Binaural Workspace — Multi-Instance Odoo Docker
 
+> **Prueba Técnica — Desarrollador Odoo**
+> - **Candidato:** Abraham David
+> - **Versión de Odoo declarada:** `18.0` (Instancia `prueba-tecnica`, PostgreSQL 17)
+> - **Repositorio:** https://github.com/iabrahamdavid/docker-odoo.git
+>
+> ### Convención de Commits y Trazabilidad de Tramos
+> Cada commit indica al final de su mensaje el ejercicio y tramo al que corresponde:
+> - Formato: [PREFIJO] <módulo>: <descripción> (<ejercicio>.<tramo>)
+> - Ejemplos: (1.A) = Ejercicio 1, Tramo A; (1.B) = Ejercicio 1, Tramo B; (2.A) = Ejercicio 2, Tramo A, etc.
+
+---
+
 Entorno de desarrollo que permite levantar **múltiples instancias de Odoo** (diferentes versiones, diferentes proyectos) desde un único directorio, cada una con sus propios addons, base de datos y puerto. Todo se configura en un archivo `instances.json`.
 
 Compatible con Odoo 14.0, 16.0, 17.0, 18.0, 19.0 y master.
