@@ -1,6 +1,9 @@
+import logging
 import time
 from functools import wraps
 from odoo.http import request
+
+_logger = logging.getLogger(__name__)
 
 
 def api_endpoint(require_auth=True):
@@ -109,24 +112,26 @@ def api_endpoint(require_auth=True):
                     status_code = 200
                 return response
 
-            except Exception:
+            except Exception as e:
                 status_code = 500
+                _logger.exception("Error no controlado en endpoint %s %s: %s", method, endpoint, e)
                 raise
 
             finally:
                 duration = time.time() - start_time
                 try:
-                    request.env["shop.api.log"].log_call(
-                        env=request.env,
-                        endpoint=endpoint,
-                        method=method,
-                        status_code=status_code,
-                        duration=duration,
-                        user_id=user_id,
-                        remote_addr=remote_addr,
-                    )
-                except Exception:
-                    pass
+                    if request and hasattr(request, "env") and request.env:
+                        request.env["shop.api.log"].log_call(
+                            env=request.env,
+                            endpoint=endpoint,
+                            method=method,
+                            status_code=status_code,
+                            duration=duration,
+                            user_id=user_id,
+                            remote_addr=remote_addr,
+                        )
+                except Exception as log_err:
+                    _logger.warning("No se pudo registrar la auditoría en shop.api.log: %s", log_err)
 
         return wrapper
 
