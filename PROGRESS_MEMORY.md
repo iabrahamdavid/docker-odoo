@@ -19,7 +19,7 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
 | **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (15/15 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
 | **2. Migración** | `fleet_inspection` | ✅ Completado (9/9 tests, 93% cov) | ⏳ Pendiente | ⏳ Pendiente | Tabla cambios, `README.md`, `AI_LOG.md` |
 | **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
-| **4. Solicitudes Pago** | `payment_request` | ✅ Completado (8/8 tests) | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `README.md`, `AI_LOG.md` |
+| **4. Solicitudes Pago** | `payment_request` | ✅ Completado (8/8 tests, 90% cov) | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `README.md`, `AI_LOG.md` |
 
 ---
 
@@ -65,10 +65,11 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
   - Restricción de método en `action_approve()` y `action_reject()` con `AccessError` para no aprobadores.
   - Vistas modernas Odoo 18: `<list>` decorada, `<form>` con `<chatter/>` y `<search>` con filtros por estado y agrupaciones.
   - Suite de 8 pruebas unitarias automatizadas (`test_payment_request.py`).
-  - Documentación obligatoria en `README.md` con sección de «Supuestos y preguntas al cliente» (Carolina Méndez) y bitácora `AI_LOG.md`.
+  - Blindaje contra auto-aprobación en `write()` y `create()` ante manipulaciones directas de `state` y `name`.
+  - Documentación obligatoria en `README.md` con sección de «Supuestos y preguntas al cliente» (Carolina Méndez), limitaciones conocidas y bitácora transparente `AI_LOG.md`.
 
 ---
 
 ## 4. Tarea Actual en Ejecución
-- **Módulo:** `payment_request` (Ejercicio 4)
-- **Objetivo:** Tramo A completado. Listo para verificación de tests en entorno Docker y preparación de commits o continuación con Tramo B.
+- **Módulos:** `shop_integration_api`, `fleet_inspection`, `sale_commission`, `payment_request`
+- **Objetivo:** Batería oficial completa de los 4 módulos verificada sobre base limpia (`prueba_limpia_audit`) con 36/36 tests en verde (100% de éxito) y 85% de cobertura global consolidada. Tramos A completados rigurosamente según especificaciones de Binaural.

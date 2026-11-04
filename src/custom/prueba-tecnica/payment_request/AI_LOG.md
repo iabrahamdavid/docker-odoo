@@ -1,7 +1,7 @@
 # AI_LOG — payment_request
 
 ## Herramientas
-- Antigravity AI Assistant (Gemini 3.8 Flash) en entorno Linux (Ubuntu).
+- Antigravity AI Assistant (Gemini 3.8 Flash / Claude Opus 5.5) en entorno Linux (Ubuntu).
 - Git CLI / Python 3.12 / Odoo CLI runner.
 
 ## Prompts clave (3 a 5)
@@ -17,15 +17,15 @@
 4. **Diseño de vistas modernas Odoo 18:**
    - *Prompt:* "Construye las vistas form, list y search para payment_request utilizando la sintaxis de Odoo 18 (etiqueta <list>, componente <chatter/> y modificadores nativos invisible y readonly sin attrs)".
    - *Resultado:* Vistas limpias y conformes a las directrices de `CONTEXT.md`.
-5. **Generación de suite de pruebas unitarias exhaustiva:**
-   - *Prompt:* "Genera una suite de tests con TransactionCase para verificar el ciclo de vida completo de payment.request, validaciones de monto positivo, bloqueo de edición, prevención de aprobación no autorizada y reglas de registro".
-   - *Resultado:* Suite con 8 tests automatizados cubriendo el 100% de los requerimientos del Tramo A.
+5. **Auditoría de seguridad y pruebas de penetración:**
+   - *Prompt:* "Verifica si un solicitante puede auto-aprobarse mediante mutación directa de datos sin presionar el botón de aprobar".
+   - *Resultado:* Se detectó y bloqueó la vulnerabilidad de auto-aprobación en `create()` y `write()`.
 
 ## Lo que la IA hizo mal
-- En un borrador inicial sugirió bloquear el método `write()` genéricamente para cualquier campo cuando `state != 'draft'`. Esto habría provocado errores en cascada al momento de actualizar el estado (`state = 'approved'`), registrar el seguimiento en el chatter o asignar campos del sistema.
-- *Cómo se corrigió:* Se definió un conjunto específico de campos sensibles (`restricted_fields`: `partner_id`, `applicant_id`, `amount`, `currency_id`, `date`, `concept`, `company_id`) y se eximió a superusuario (`self.env.su`).
+- **Vulnerabilidad de auto-aprobación en ORM:** En la primera versión de `models/payment_request.py`, la IA protegió el método `action_approve()` con chequeo de grupo, pero en `write()` únicamente incluyó campos de datos (`partner_id`, `amount`, `concept`, etc.) en la lista de campos restringidos. Como `state` no estaba bloqueado, un solicitante no podía usar el botón, pero sí podía enviar una mutación directa `write({'state': 'approved'})` o crear registros con `create({'state': 'approved'})`.
+- **Efecto colateral en la primera corrección:** Al intentar bloquear `name` y `state` de forma ingenua en `write()`, se impidió que el propio solicitante pudiera enviar su solicitud (`action_submit()`), ya que el envío genera la secuencia y cambia el estado a `submitted`.
+- *Cómo se detectó y corrigió:* Se descubrió mediante pruebas de caja negra en `odoo shell` simulando un solicitante. La corrección definitiva exigió condicionar el cambio de `state` y `name` a usuarios aprobadores o a métodos con contexto autorizado (`allow_state_transition=True`, `system_sequence=True`), respaldándolo con pruebas unitarias específicas en `test_04_applicant_cannot_approve_or_reject`.
 
 ## Lo que escribiste tú sin IA
-- Redacción detallada de la sección «Supuestos y preguntas al cliente» para Carolina Méndez en el `README.md`, analizando la realidad operativa de empresas venezolanas (tasas BCV vs fecha de pago, manejo de órdenes de pago directas vs facturas preexistentes en Odoo).
-- Definición de la jerarquía de herencia de grupos de seguridad (`group_payment_request_user` -> `group_payment_request_approver` -> `group_payment_request_manager`) para simplificar la asignación de permisos de usuarios en el ERP.
-
+- Análisis del correo de Carolina Méndez identificando las 5 preguntas clave de consultoría (umbral entre pago normal y grande, modelado del jefe de área en RRHH, política de rechazo vs nueva solicitud, y fijación de tasas de cambio USD/VES).
+- Criterio de auditoría técnica exigiendo verificar empíricamente cada módulo con el CLI oficial de Docker (`./odoo test`) antes de considerar cualquier tramo como completado.

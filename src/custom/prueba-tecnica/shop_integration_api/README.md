@@ -84,3 +84,13 @@ Cada llamada a los endpoints de la API (exitosa o con error 401, 400, 422) se re
    Al recibir una compra vía `POST /api/v1/orders`, el pedido se crea deliberadamente en estado `draft` (Cotización) en `sale.order`. Esto permite validación comercial/financiera por parte del equipo interno y previene bloqueos irreversibles o consumos accidentales de inventario antes de confirmar la transacción.
 5. **Persistencia Aislada de Logs (`cr` independiente):**
    Para garantizar la trazabilidad de seguridad y técnica ante cualquier excepción o rollback en la transacción del endpoint, el registro en `shop.api.log` se realiza abriendo un cursor de base de datos independiente (`env.registry.cursor()`), asegurando que el log se confirme (commit) en PostgreSQL sin importar el resultado de la transacción principal.
+6. **Autenticación con `auth='public'` y decorador `@api_endpoint`:**
+   En Odoo, declarar `auth='user'` a nivel de `@http.route` fuerza una redirección HTTP 303 hacia `/web/login` en caso de no existir una cookie de sesión activa de navegador. Para soportar clientes API REST desacoplados que envían cabeceras `Authorization: Bearer <token>` (Tramo B) o sesiones existentes (Tramo A), la ruta se definió con `auth='public'` y la autenticación se delega por completo al decorador `@api_endpoint`.
+
+---
+
+## 4. Limitaciones Conocidas (Tramo A y B)
+
+1. **Paginación:** En el Tramo A y B el catálogo de productos devuelve todos los registros coincidentes sin paginar. La paginación estructurada con metadatos (`total`, `page`, `next`) corresponde al alcance del Tramo C.
+2. **Idempotencia de pedidos:** La prevención de pedidos duplicados ante reintentos de red mediante cabecera `Idempotency-Key` está planificada para el Tramo C.
+3. **Visibilidad de logs:** El modelo `shop.api.log` no cuenta con menú ni vista en la interfaz de usuario en estos tramos; su consulta se realiza a través de base de datos o en modo técnico.

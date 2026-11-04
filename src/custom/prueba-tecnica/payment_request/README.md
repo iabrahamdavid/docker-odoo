@@ -75,3 +75,11 @@ O en entornos Windows PowerShell:
 $env:PYTHONUTF8=1; python odoo test prueba-tecnica payment_request
 ```
 
+---
+
+## 6. Limitaciones Conocidas (Tramo A)
+
+1. **Niveles de aprobación por monto:** En el Tramo A, la aprobación queda habilitada para cualquier usuario perteneciente al grupo `group_payment_request_approver`. La matriz dinámica de aprobación según el monto y la asignación automática de actividades (`payment.approval.level`) pertenecen al Tramo B.
+2. **Transición a Pagada:** En este tramo no existe un botón manual para forzar el estado `paid`; dicho estado se alcanzará en el Tramo B mediante el wizard de pago contable vinculado a `account.payment`.
+3. **Blindaje de inmutabilidad en ORM:** Para evitar vulnerabilidades de omisión de controles, los métodos `write()` y `create()` impiden que usuarios sin rol de aprobador modifiquen directamente el estado (`state`) o alteren la secuencia (`name`), exigiendo que el avance de estados ocurra únicamente mediante los botones y métodos del flujo oficial.
+
