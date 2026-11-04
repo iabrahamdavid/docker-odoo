@@ -69,7 +69,7 @@ Al revisar el historial con `git log -p 3f4d73f`, se identificó el commit respo
 4. Al ejecutarse `search()` en el contexto del vendedor (`self.env.user`), el ORM de Odoo valida la lista de control de acceso sobre `sale.commission.rule`. Al no existir entrada, lanza `AccessError`.
 
 ### ¿Por qué no se detectó en CI antes de desplegar?
-En el commit `3f4d73f`, el desarrollador modificó el helper `_create_order()` en `tests/test_sale_commission.py` y fijó `cls.env.user.commission_percent = 5.0`. Los tests invocaban `order.action_confirm()` utilizando `self.env.user` (Superusuario / Admin), el cual elude las comprobaciones de ACL (`ir.model.access.csv`). En consecuencia, el pipeline de CI marcó verde a pesar de existir una vulnerabilidad funcional crítica para usuarios restringidos.
+En el commit `3f4d73f`, el helper `_create_order()` de `tests/test_sale_commission.py` dejó de usar `.with_user(user)`: desde entonces todos los pedidos de prueba se crean y se confirman como administrador, que no pasa por las listas de control de acceso. La línea `cls.env.user.commission_percent = 5.0` se añadió en el mismo commit para que las pruebas existentes siguieran pasando ya como administrador; es una consecuencia del cambio, no la causa. Por eso las pruebas quedaron en verde aunque un vendedor no pudiera confirmar. El análisis completo está en la sección 7.
 
 ---
 
@@ -105,3 +105,96 @@ Tras aplicar la línea en `ir.model.access.csv`, se ejecutó nuevamente la suite
 - **Tests ejecutados:** 5 (100% de éxito, 0 errores, 0 fallos).
 - **Cobertura de código:** 83%.
 - **Resultado del test de regresión:** El vendedor confirma pedidos correctamente con las comisiones por categoría aplicadas, y el gerente sigue operando sin alteraciones.
+
+---
+
+# Tramo B — Contención y comunicación
+
+## 6. Contención en los primeros 15 minutos
+
+### Medida
+Antes de tener la corrección desplegada, un administrador crea desde la interfaz **un permiso de solo lectura** sobre las reglas de comisión para el grupo de vendedores:
+
+- Ruta: *Ajustes → Técnico → Seguridad → Derechos de acceso → Nuevo*.
+- Nombre: `TEMP T-200 contencion`.
+- Modelo: *Comisión por categoría de producto* (`sale.commission.rule`).
+- Grupo: *Ventas / Usuario: solo documentos propios* (`sales_team.group_sale_salesman`).
+- Permisos: solo **Leer**. Escribir, Crear y Eliminar quedan sin marcar.
+
+Toma unos 2 minutos, no requiere desplegar código ni reiniciar el servidor y tiene el mismo efecto que la corrección definitiva (sección 4).
+
+### Por qué es reversible
+Basta con borrar o archivar el registro `TEMP T-200 contencion` para volver exactamente al estado anterior. No toca datos de pedidos ni el código del módulo.
+
+### Riesgos
+- Los vendedores pueden **leer** los porcentajes de comisión por categoría. Es el mismo acceso que dará la corrección definitiva, pero conviene que el cliente lo sepa.
+- Es un cambio manual fuera del código. Si no se borra después de desplegar la corrección, quedan dos permisos equivalentes: no causa errores, pero confunde a quien audite los permisos. Por eso su borrado es un paso explícito del despliegue (sección 8).
+- Lo debe hacer un usuario administrador, dejando constancia de quién lo hizo y a qué hora.
+
+### Alternativas descartadas
+| Alternativa | Motivo |
+|---|---|
+| Dar a los vendedores el grupo del gerente | Reparte permisos de más: podrían editar porcentajes y ver lo de otros vendedores. |
+| Volver a la versión 1.0.0 del módulo | Obliga a desinstalar o retroceder el esquema y se pierden las reglas por categoría; no cabe en 15 minutos ni se revierte con facilidad. |
+| Que el gerente siga confirmando los pedidos | No aguanta el volumen del sábado y deja pedidos confirmados con el usuario equivocado. |
+| Añadir `sudo()` en el código | Exige desplegar código, que es justo lo que no se puede hacer en 15 minutos, y oculta el problema de permisos. |
+
+### Prueba realizada
+Se probó en una base de datos aparte (`t200_contencion`) con el código de la rama base, que todavía tiene el error. Se usó un usuario vendedor que no pertenece al grupo del gerente y una categoría con regla del 8 %. El permiso se creó y se borró con `odoo shell`, que equivale a hacerlo desde la interfaz. Resultados reales:
+
+| Paso | Acción | Resultado |
+|---|---|---|
+| 1 | El vendedor confirma `S00001` sin contención | `AccessError: You are not allowed to access 'Comisión por categoría de producto' (sale.commission.rule) records.` |
+| 2 | Se crea el permiso `TEMP T-200 contencion` (solo lectura) | Creado |
+| 3 | El vendedor confirma `S00002` | Confirmado (estado `sale`), comisión de la línea: 8,0 % |
+| 3b | El vendedor intenta cambiar el porcentaje de la categoría | `AccessError`: sigue sin poder editarlo |
+| 4 | Se borra el permiso temporal | Quedan 0 permisos con ese nombre |
+| 5 | El vendedor confirma `S00003` | `AccessError` de nuevo: la medida se revierte por completo |
+
+---
+
+## 7. Commit que introdujo el error y por qué pasó la revisión
+
+### Identificación
+Historial del módulo (`git log --oneline -- src/custom/prueba-tecnica/sale_commission`):
+
+| Commit | Descripción | Estado |
+|---|---|---|
+| `ad51040` | [ADD] versión 1.0.0: comisión por línea y análisis mensual | Funciona |
+| **`3f4d73f`** | **[FEAT] versión 1.1.0: porcentaje de comisión por categoría de producto** | **Falla** |
+| `87ac54d` | [DOC] README con la configuración por categoría | Solo documentación |
+
+`3f4d73f` es el primer commit en el que aparece `sale.commission.rule` y en el que la confirmación del pedido empieza a consultarlo. Así lo muestra `git show 3f4d73f -- security/ tests/`:
+
+```diff
+ # security/ir.model.access.csv
+ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
++access_sale_commission_rule_manager,sale.commission.rule.manager,model_sale_commission_rule,sales_team.group_sale_manager,1,1,1,1
+ access_sale_commission_report_salesman,sale.commission.report.salesman,model_sale_commission_report,sales_team.group_sale_salesman,1,0,0,0
+```
+
+```diff
+ # tests/test_sale_commission.py
+         cls.salesman.commission_percent = 5.0
++        cls.env.user.commission_percent = 5.0
+ ...
+     def _create_order(self, user, qty=2):
+-        return self.env["sale.order"].with_user(user).create({
++        return self.env["sale.order"].create({
+```
+
+Con un historial más largo se confirmaría con `git bisect` entre la última versión buena y la primera mala. El criterio sería la prueba de regresión del Tramo A, que hay que copiar en cada commit evaluado porque no existe en esos commits:
+
+```bash
+git bisect start 3f4d73f ad51040   # malo, bueno
+git bisect run <script que copia la prueba de regresión y corre ./odoo test prueba-tecnica sale_commission>
+git bisect reset
+```
+
+No se ejecutó: `3f4d73f` es el único commit de código entre la versión que funciona (`ad51040`) y la que falla, así que `git log` y el diff bastan para identificarlo.
+
+### Por qué pasó la revisión
+1. **Las pruebas dejaron de ejecutarse como vendedor.** Al quitar `.with_user(user)` de `_create_order()`, todos los pedidos de prueba se crean y confirman como administrador, que no pasa por las listas de control de acceso. La línea `cls.env.user.commission_percent = 5.0` se añadió para que las pruebas siguieran dando el resultado esperado ya como administrador: es una consecuencia, no la causa.
+2. **Lo que falta no aparece en el diff.** En `ir.model.access.csv` solo se añade una línea, la del gerente, que es correcta. La línea ausente, la del vendedor, no se ve en la revisión.
+3. **El mensaje del commit orienta hacia el gerente.** Dice «configurable desde la categoría por el gerente de ventas», lo que lleva a pensar solo en ese rol. Sin embargo, `_get_commission_percent()` se ejecuta al confirmar el pedido, es decir, con el usuario vendedor.
+4. **Nadie confirmó un pedido con un vendedor antes de desplegar.** Las pruebas estaban en verde y no hubo una prueba manual con ese rol.
