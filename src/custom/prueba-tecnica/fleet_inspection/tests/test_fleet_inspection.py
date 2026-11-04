@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests.common import Form, TransactionCase, tagged
+from odoo.tests import Form
+from odoo.tests.common import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
@@ -25,7 +26,11 @@ class TestFleetInspection(TransactionCase):
         })
 
     def _new_inspection(self, **vals):
-        values = {"vehicle_id": self.vehicle.id, "vehicle_type": "truck", "inspector_id": self.inspector.id}
+        values = {
+            "vehicle_id": self.vehicle.id,
+            "vehicle_type_id": self.env.ref("fleet_inspection.vehicle_type_truck").id,
+            "inspector_id": self.inspector.id,
+        }
         values.update(vals)
         return self.env["fleet.inspection"].create(values)
 
@@ -83,7 +88,7 @@ class TestFleetInspection(TransactionCase):
         form.vehicle_id = self.vehicle
         inspection = form.save()
         self.assertEqual(inspection.inspector_id, self.inspector)
-        self.assertEqual(inspection.vehicle_type, "car")
+        self.assertEqual(inspection.vehicle_type_id, self.env.ref("fleet_inspection.vehicle_type_car"))
 
     def test_cron_marks_overdue_once(self):
         inspection = self._new_inspection(date=fields.Date.today() - timedelta(days=10))
