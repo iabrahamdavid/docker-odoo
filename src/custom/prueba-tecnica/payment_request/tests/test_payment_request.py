@@ -93,13 +93,29 @@ class TestPaymentRequest(TransactionCase):
         req = self._create_request(user=self.user_applicant_1)
         req.action_submit()
 
-        # Intento de aprobación por solicitante debe lanzar AccessError
+        # Intento de aprobación por solicitante llamando al método debe lanzar AccessError
         with self.assertRaises(AccessError):
             req.with_user(self.user_applicant_1).action_approve()
 
-        # Intento de rechazo por solicitante debe lanzar AccessError
+        # Intento de rechazo por solicitante llamando al método debe lanzar AccessError
         with self.assertRaises(AccessError):
             req.with_user(self.user_applicant_1).action_reject()
+
+        # Intento de bypass mediante write directo de state debe lanzar AccessError
+        with self.assertRaises(AccessError):
+            req.with_user(self.user_applicant_1).write({"state": "approved"})
+
+        with self.assertRaises(AccessError):
+            req.with_user(self.user_applicant_1).write({"state": "paid"})
+
+        # Intento de creación directa en estado aprobado debe lanzar AccessError
+        with self.assertRaises(AccessError):
+            self.env["payment.request"].with_user(self.user_applicant_1).create({
+                "partner_id": self.partner_a.id,
+                "amount": 100.0,
+                "concept": "Intento de autoaprobación en create",
+                "state": "approved",
+            })
 
     def test_05_approver_can_approve_and_reject(self):
         """Verifica que un usuario aprobador pueda aprobar y rechazar solicitudes enviadas."""

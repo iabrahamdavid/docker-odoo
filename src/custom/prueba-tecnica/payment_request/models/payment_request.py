@@ -83,8 +83,33 @@ class PaymentRequest(models.Model):
             if req.amount <= 0.0:
                 raise ValidationError(_("El monto de la solicitud debe ser estrictamente mayor a cero."))
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        is_approver = self.env.user.has_group("payment_request.group_payment_request_approver")
+        for vals in vals_list:
+            if not self.env.su and not is_approver:
+                if vals.get("state") and vals["state"] != "draft":
+                    raise AccessError(_("No tiene autorización para crear solicitudes en un estado diferente a borrador."))
+                if vals.get("name") and vals["name"] != "/":
+                    raise AccessError(_("La secuencia de la solicitud es automática y no puede ser manipulada manualmente."))
+        return super().create(vals_list)
+
     def write(self, vals):
         if not self.env.su:
+            is_approver = self.env.user.has_group("payment_request.group_payment_request_approver")
+
+            # 1. Protección contra manipulación directa de estado
+            if "state" in vals:
+                if not self.env.context.get("allow_state_transition") and not is_approver:
+                    raise AccessError(_("El estado de la solicitud no puede modificarse directamente."))
+                if vals["state"] in ("approved", "paid") and not is_approver:
+                    raise AccessError(_("Solo los usuarios autorizados como Aprobadores pueden aprobar o procesar solicitudes."))
+
+            # 2. Protección contra manipulación manual de la secuencia
+            if "name" in vals and not self.env.context.get("system_sequence") and not is_approver:
+                raise AccessError(_("La secuencia es automática y no puede ser modificada manualmente."))
+
+            # 3. Bloqueo de campos de negocio una vez enviada
             restricted_fields = {
                 "partner_id",
                 "applicant_id",
@@ -112,9 +137,13 @@ class PaymentRequest(models.Model):
                 raise UserError(_("Solo se pueden enviar solicitudes en estado Borrador."))
             if req.amount <= 0.0:
                 raise ValidationError(_("El monto de la solicitud debe ser estrictamente mayor a cero."))
-            if req.name == "/":
-                req.name = self.env["ir.sequence"].next_by_code("payment.request") or "/"
-            req.state = "submitted"
+            seq_name = req.name
+            if seq_name == "/":
+                seq_name = self.env["ir.sequence"].next_by_code("payment.request") or "/"
+            req.with_context(allow_state_transition=True, system_sequence=True).write({
+                "name": seq_name,
+                "state": "submitted",
+            })
 
     def action_approve(self):
         if not self.env.user.has_group("payment_request.group_payment_request_approver"):
@@ -122,7 +151,7 @@ class PaymentRequest(models.Model):
         for req in self:
             if req.state != "submitted":
                 raise UserError(_("Solo se pueden aprobar solicitudes en estado Enviada."))
-            req.state = "approved"
+            req.with_context(allow_state_transition=True).write({"state": "approved"})
 
     def action_reject(self):
         if not self.env.user.has_group("payment_request.group_payment_request_approver"):
@@ -130,11 +159,11 @@ class PaymentRequest(models.Model):
         for req in self:
             if req.state != "submitted":
                 raise UserError(_("Solo se pueden rechazar solicitudes en estado Enviada."))
-            req.state = "rejected"
+            req.with_context(allow_state_transition=True).write({"state": "rejected"})
 
     def action_reset_to_draft(self):
         for req in self:
             if req.state != "rejected":
                 raise UserError(_("Solo se pueden restablecer a borrador solicitudes rechazadas."))
-            req.state = "draft"
+            req.with_context(allow_state_transition=True).write({"state": "draft"})
 
