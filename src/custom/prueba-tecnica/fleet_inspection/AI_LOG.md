@@ -24,3 +24,33 @@
 ## Lo que escribiste tú sin IA
 - Verificación manual de las dependencias externas (`fleet` y `mail`) en el entorno Docker para corroborar que los grupos de usuario no sufrieron renombrado de XML IDs en Odoo 18.
 - La estrategia de compatibilidad dual en `name_get()` llamando internamente a `_compute_display_name()` para asegurar que tanto la API nueva de Odoo 18 como posibles llamadas legadas o tests mantuvieran total estabilidad.
+
+---
+
+# Tramo B — tipo de vehículo como catálogo
+
+## Herramientas
+- Claude Code (Claude Opus 5.5) en VS Code sobre Linux, con acceso al repositorio y a los contenedores Docker de la instancia `prueba-tecnica`.
+
+## Prompts clave (3 a 5)
+1. **Arranque con un plan escrito:**
+   - *Prompt:* "Revisa `PLAN_EJ2_TRAMO_B.md` para proceder".
+   - *Resultado:* Contrastó el plan con el estado real del repositorio (rama, versión del manifiesto, las 6 referencias a `vehicle_type`) e implementó el catálogo, el campo Many2one, los scripts `pre`/`post` y las pruebas, pidiendo confirmación antes de cada commit.
+2. **Escenario real del enunciado:**
+   - *Pedido:* instalar el Tramo A, crear datos, subir la versión y actualizar con `-u`.
+   - *Resultado:* Instaló el Tramo A desde el commit `847c7b9` en una base aparte, creó 14 inspecciones y comparó los conteos por tipo antes y después con SQL.
+3. **Revisión de lo hecho:**
+   - *Prompt:* "Puedes verificar si lo que llevamos está bien y mostrármelo en tablas".
+   - *Resultado:* Tablas de criterios del enunciado frente a evidencia; detectó y corrigió dos detalles de estilo (línea en blanco antes de la clase y una línea de 158 caracteres en las pruebas).
+
+## Lo que la IA hizo mal
+- **Datos de prueba que no probaban el chatter:** cambió el tipo de una inspección dos veces (Camión y de vuelta a Otro) en la misma transacción, así que Odoo no registró ningún cambio y la comprobación del historial no probaba nada.
+  - *Cómo se detectó:* la consulta a `mail_tracking_value` volvió vacía. Se repitió el escenario con un cambio real y confirmado.
+- **Shell de Odoo con el código equivocado:** al crear datos del Tramo A, `odoo shell` cargó el código nuevo porque la variable `ODOO_RC` del contenedor se lee antes que `--addons-path`.
+  - *Cómo se detectó:* error `Invalid field 'vehicle_type' on model 'fleet.inspection'`; se resolvió apuntando `ODOO_RC` a una configuración temporal.
+- **Mensajes de commit fuera del estilo del repositorio:** propuso asuntos con tildes y una redacción distinta a la del historial.
+  - *Cómo se detectó:* lo señalé yo al revisarlos; se reescribieron siguiendo `git log`.
+
+## Lo que escribiste tú sin IA
+- Las decisiones de alcance: no añadir pruebas que el enunciado no pide (por ejemplo, la de borrar un tipo en uso) y hacer un commit por paso en lugar de uno al final.
+- La revisión y el estilo de los mensajes de commit.
