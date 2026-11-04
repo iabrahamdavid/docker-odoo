@@ -96,17 +96,14 @@ class PaymentRequest(models.Model):
 
     def write(self, vals):
         if not self.env.su:
-            is_approver = self.env.user.has_group("payment_request.group_payment_request_approver")
-
-            # 1. Protección contra manipulación directa de estado
+            # 1. State and sequence only change through the action_* methods,
+            # which write via super(). The context is client-controlled over
+            # RPC, so it must never unlock these fields.
             if "state" in vals:
-                if not self.env.context.get("allow_state_transition") and not is_approver:
-                    raise AccessError(_("El estado de la solicitud no puede modificarse directamente."))
-                if vals["state"] in ("approved", "paid") and not is_approver:
-                    raise AccessError(_("Solo los usuarios autorizados como Aprobadores pueden aprobar o procesar solicitudes."))
+                raise AccessError(_("El estado de la solicitud no puede modificarse directamente."))
 
             # 2. Protección contra manipulación manual de la secuencia
-            if "name" in vals and not self.env.context.get("system_sequence") and not is_approver:
+            if "name" in vals:
                 raise AccessError(_("La secuencia es automática y no puede ser modificada manualmente."))
 
             # 3. Bloqueo de campos de negocio una vez enviada
@@ -140,7 +137,7 @@ class PaymentRequest(models.Model):
             seq_name = req.name
             if seq_name == "/":
                 seq_name = self.env["ir.sequence"].next_by_code("payment.request") or "/"
-            req.with_context(allow_state_transition=True, system_sequence=True).write({
+            super(PaymentRequest, req).write({
                 "name": seq_name,
                 "state": "submitted",
             })
@@ -151,7 +148,7 @@ class PaymentRequest(models.Model):
         for req in self:
             if req.state != "submitted":
                 raise UserError(_("Solo se pueden aprobar solicitudes en estado Enviada."))
-            req.with_context(allow_state_transition=True).write({"state": "approved"})
+            super(PaymentRequest, req).write({"state": "approved"})
 
     def action_reject(self):
         if not self.env.user.has_group("payment_request.group_payment_request_approver"):
@@ -159,11 +156,11 @@ class PaymentRequest(models.Model):
         for req in self:
             if req.state != "submitted":
                 raise UserError(_("Solo se pueden rechazar solicitudes en estado Enviada."))
-            req.with_context(allow_state_transition=True).write({"state": "rejected"})
+            super(PaymentRequest, req).write({"state": "rejected"})
 
     def action_reset_to_draft(self):
         for req in self:
             if req.state != "rejected":
                 raise UserError(_("Solo se pueden restablecer a borrador solicitudes rechazadas."))
-            req.with_context(allow_state_transition=True).write({"state": "draft"})
+            super(PaymentRequest, req).write({"state": "draft"})
 

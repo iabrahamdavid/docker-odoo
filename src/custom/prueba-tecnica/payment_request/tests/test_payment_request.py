@@ -191,3 +191,21 @@ class TestPaymentRequest(TransactionCase):
         with self.assertRaises(UserError):
             req_approved.unlink()
 
+    def test_09_context_cannot_bypass_workflow(self):
+        """Un solicitante no puede reabrir ni renumerar una solicitud enviada
+        inyectando claves de contexto por RPC."""
+        req = self._create_request(user=self.user_applicant_1, amount=300.0)
+        req.action_submit()
+        number = req.name
+        forged = req.with_user(self.user_applicant_1).with_context(
+            allow_state_transition=True, system_sequence=True,
+        )
+
+        with self.assertRaises(AccessError):
+            forged.write({"state": "draft"})
+        with self.assertRaises(AccessError):
+            forged.write({"name": "SP/0000/9999"})
+
+        self.assertEqual(req.state, "submitted")
+        self.assertEqual(req.name, number)
+
