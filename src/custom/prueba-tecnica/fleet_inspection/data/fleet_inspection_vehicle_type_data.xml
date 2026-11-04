@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="vehicle_type_motorcycle" model="fleet.inspection.vehicle.type">
+        <field name="name">Moto</field>
+        <field name="code">motorcycle</field>
+    </record>
+    <record id="vehicle_type_car" model="fleet.inspection.vehicle.type">
+        <field name="name">Carro</field>
+        <field name="code">car</field>
+    </record>
+    <record id="vehicle_type_truck" model="fleet.inspection.vehicle.type">
+        <field name="name">Camión</field>
+        <field name="code">truck</field>
+    </record>
+    <record id="vehicle_type_other" model="fleet.inspection.vehicle.type">
+        <field name="name">Otro</field>
+        <field name="code">other</field>
+    </record>
+</odoo>
