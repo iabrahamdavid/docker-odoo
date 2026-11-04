@@ -64,3 +64,16 @@ class TestSaleCommission(TransactionCase):
         order = self._create_order(self.salesman)
         order.action_confirm()
         self.assertEqual(order.order_line.commission_percent, 10.0)
+
+    def test_salesman_can_confirm_order_with_category_commission(self):
+        """Ticket T-200: Verifica que un vendedor (group_sale_salesman) pueda confirmar
+        un pedido con regla de comisión por categoría sin disparar AccessError."""
+        self.category.commission_percent = 8.0
+        order = self.env["sale.order"].with_user(self.salesman).create({
+            "partner_id": self.partner.id,
+            "user_id": self.salesman.id,
+            "order_line": [(0, 0, {"product_id": self.product.id, "product_uom_qty": 2})],
+        })
+        order.with_user(self.salesman).action_confirm()
+        self.assertEqual(order.state, "sale")
+        self.assertEqual(order.order_line.commission_percent, 8.0)
