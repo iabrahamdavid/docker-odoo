@@ -17,8 +17,8 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
 | Ejercicio | Módulo | Tramo A | Tramo B | Tramo C | Notas / Entregables |
 |---|---|:---:|:---:|:---:|---|
 | **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (15/15 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
-| **2. Migración** | `fleet_inspection` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Mover de `prueba-tecnica-odoo16/`, tabla cambios, `MIGRATION_PLAN.md` |
-| **3. Ticket Urgente** | `sale_commission` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, PR |
+| **2. Migración** | `fleet_inspection` | ✅ Completado (9/9 tests, 93% cov) | ⏳ Pendiente | ⏳ Pendiente | Tabla cambios, `README.md`, `AI_LOG.md` |
+| **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
 | **4. Solicitudes Pago** | `payment_request` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `ARCHITECTURE.md` |
 
 ---
@@ -39,8 +39,24 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
   - 15 tests automatizados pasando en verde (100% éxito, 0 errores, 0 fallos).
   - Documentación actualizada en `README.md` y `AI_LOG.md`.
 
+- [x] **Tramo A `fleet_inspection` (Ejercicio 2):**
+  - Reubicación a `src/custom/prueba-tecnica/fleet_inspection`.
+  - Migración a Odoo 18: manifiesto (`18.0.1.0.0`), modelos (`_compute_display_name`, `@api.model_create_multi`, eliminación de `states={...}`).
+  - Modernización de vistas XML: adopción de `<list>`, `<chatter/>`, atributos nativos `invisible` y `readonly`.
+  - Corrección en datos de cron: eliminación de campos removidos en Odoo 18 (`numbercall` y `doall`).
+  - 9 tests automatizados pasando en verde (100% éxito, 0 fallos, 0 errores, 93% cobertura).
+  - Documentación obligatoria con tabla formal de cambios en `README.md` y bitácora en `AI_LOG.md`.
+  - 3 commits atómicos con prefijos `[MIG]`, `[TEST]`, `[DOC]`.
+
+- [x] **Tramo A `sale_commission` (Ejercicio 3 — Ticket T-200):**
+  - Rama `hotfix/T-200` creada a partir de `master-multi-prueba-tecnica`.
+  - Reproducción formal del fallo con test unitario ejecutado bajo usuario vendedor (`test_salesman_can_confirm_order_with_category_commission`), confirmando `AccessError` en la fase roja.
+  - Corrección mínima bajo principio de menor privilegio en `security/ir.model.access.csv`: permiso exclusivo de lectura (`1,0,0,0`) al grupo `sales_team.group_sale_salesman` sobre `sale.commission.rule`.
+  - Fase verde superada con 5/5 tests en éxito y 83% de cobertura.
+  - Creación de documentación del incidente en `INCIDENT.md` y bitácora en `AI_LOG.md`.
+
 ---
 
 ## 4. Tarea Actual en Ejecución
-- **Módulo:** `shop_integration_api` (Ejercicio 1)
-- **Objetivo:** Tramo B culminado con éxito. Próximo paso: Tramo C (Paginación, idempotencia con `Idempotency-Key`, optimización de stock y webhook) o commits atómicos de cierre.
+- **Módulo:** `sale_commission` (Ejercicio 3)
+- **Objetivo:** Tramo A culminado. Próximo paso: Ejercicio 4 (`payment_request`) o Tramo B/C si aplica.
