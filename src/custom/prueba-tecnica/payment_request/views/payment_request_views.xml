@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista Formulario de Solicitudes de Pago -->
+    <record id="view_payment_request_form" model="ir.ui.view">
+        <field name="name">payment.request.form</field>
+        <field name="model">payment.request</field>
+        <field name="arch" type="xml">
+            <form string="Solicitud de Pago">
+                <header>
+                    <button name="action_submit"
+                            string="Enviar Solicitud"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve"
+                            string="Aprobar"
+                            type="object"
+                            class="oe_highlight"
+                            groups="payment_request.group_payment_request_approver"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_reject"
+                            string="Rechazar"
+                            type="object"
+                            groups="payment_request.group_payment_request_approver"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_reset_to_draft"
+                            string="Restablecer a Borrador"
+                            type="object"
+                            invisible="state != 'rejected'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,paid"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Secuencia"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Datos de la Solicitud">
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="applicant_id" readonly="state != 'draft'"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                        </group>
+                        <group string="Importe y Moneda">
+                            <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"/>
+                            <field name="currency_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Concepto">
+                            <field name="concept" placeholder="Indique el motivo detallado de la solicitud de pago..." readonly="state != 'draft'"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vista Lista de Solicitudes de Pago (Odoo 18 <list>) -->
+    <record id="view_payment_request_list" model="ir.ui.view">
+        <field name="name">payment.request.list</field>
+        <field name="model">payment.request</field>
+        <field name="arch" type="xml">
+            <list string="Solicitudes de Pago"
+                  decoration-info="state == 'submitted'"
+                  decoration-success="state == 'approved'"
+                  decoration-danger="state == 'rejected'"
+                  decoration-muted="state == 'paid'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="applicant_id"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="state"
+                       widget="badge"
+                       decoration-info="state == 'submitted'"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'"
+                       decoration-muted="state == 'paid'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vista Búsqueda de Solicitudes de Pago -->
+    <record id="view_payment_request_search" model="ir.ui.view">
+        <field name="name">payment.request.search</field>
+        <field name="model">payment.request</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Solicitudes de Pago">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="applicant_id"/>
+                <field name="concept"/>
+                <separator/>
+                <filter string="Borrador" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Enviadas" name="filter_submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Aprobadas" name="filter_approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Pagadas" name="filter_paid" domain="[('state', '=', 'paid')]"/>
+                <filter string="Rechazadas" name="filter_rejected" domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Proveedor" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Solicitante" name="group_applicant" context="{'group_by': 'applicant_id'}"/>
+                    <filter string="Fecha" name="group_date" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>
+

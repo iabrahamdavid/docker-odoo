@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Acción de Ventana para Solicitudes de Pago -->
+    <record id="action_payment_request" model="ir.actions.act_window">
+        <field name="name">Solicitudes de Pago</field>
+        <field name="res_model">payment.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_payment_request_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crear una nueva solicitud de pago
+            </p>
+            <p>
+                Gestione las solicitudes de pago a proveedores y su flujo de aprobaciones.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menú Raíz -->
+    <menuitem id="menu_payment_request_root"
+              name="Solicitudes de Pago"
+              groups="payment_request.group_payment_request_user"
+              sequence="45"/>
+
+    <!-- Submenú Operaciones -->
+    <menuitem id="menu_payment_request_operations"
+              name="Operaciones"
+              parent="menu_payment_request_root"
+              sequence="10"/>
+
+    <!-- Entrada de Menú de Solicitudes -->
+    <menuitem id="menu_payment_request_act"
+              name="Solicitudes de Pago"
+              parent="menu_payment_request_operations"
+              action="action_payment_request"
+              sequence="10"/>
+</odoo>
+
