@@ -18,7 +18,7 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
 |---|---|:---:|:---:|:---:|---|
 | **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (15/15 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
 | **2. Migración** | `fleet_inspection` | ✅ Completado (9/9 tests, 93% cov) | ⏳ Pendiente | ⏳ Pendiente | Tabla cambios, `README.md`, `AI_LOG.md` |
-| **3. Ticket Urgente** | `sale_commission` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, PR |
+| **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
 | **4. Solicitudes Pago** | `payment_request` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `ARCHITECTURE.md` |
 
 ---
@@ -48,8 +48,15 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
   - Documentación obligatoria con tabla formal de cambios en `README.md` y bitácora en `AI_LOG.md`.
   - 3 commits atómicos con prefijos `[MIG]`, `[TEST]`, `[DOC]`.
 
+- [x] **Tramo A `sale_commission` (Ejercicio 3 — Ticket T-200):**
+  - Rama `hotfix/T-200` creada a partir de `master-multi-prueba-tecnica`.
+  - Reproducción formal del fallo con test unitario ejecutado bajo usuario vendedor (`test_salesman_can_confirm_order_with_category_commission`), confirmando `AccessError` en la fase roja.
+  - Corrección mínima bajo principio de menor privilegio en `security/ir.model.access.csv`: permiso exclusivo de lectura (`1,0,0,0`) al grupo `sales_team.group_sale_salesman` sobre `sale.commission.rule`.
+  - Fase verde superada con 5/5 tests en éxito y 83% de cobertura.
+  - Creación de documentación del incidente en `INCIDENT.md` y bitácora en `AI_LOG.md`.
+
 ---
 
 ## 4. Tarea Actual en Ejecución
 - **Módulo:** `sale_commission` (Ejercicio 3)
-- **Objetivo:** Tramo A — Ticket urgente T-200. Creación de rama `hotfix/T-200`, reproducción de fallo con vendedor, test que falle y corrección mínima.
+- **Objetivo:** Tramo A culminado. Próximo paso: Ejercicio 4 (`payment_request`) o Tramo B/C si aplica.
