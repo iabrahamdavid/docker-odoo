@@ -18,7 +18,7 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
 |---|---|:---:|:---:|:---:|---|
 | **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (15/15 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
 | **2. Migración** | `fleet_inspection` | ✅ Completado (9/9 tests, 93% cov) | ✅ Completado (12/12 tests, 94% cov) | ⏳ Pendiente | Tabla cambios, `migrations/`, `README.md`, `AI_LOG.md` |
-| **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
+| **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ✅ Completado (contención probada, solo documentación) | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
 | **4. Solicitudes Pago** | `payment_request` | ✅ Completado (8/8 tests, 90% cov) | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `README.md`, `AI_LOG.md` |
 
 ---
@@ -76,9 +76,16 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
   - Blindaje contra auto-aprobación en `write()` y `create()` ante manipulaciones directas de `state` y `name`.
   - Documentación obligatoria en `README.md` con sección de «Supuestos y preguntas al cliente» (Carolina Méndez), limitaciones conocidas y bitácora transparente `AI_LOG.md`.
 
+- [x] **Tramo B `sale_commission` (Ejercicio 3 — Ticket T-200):**
+  - Contención de 15 minutos: permiso temporal de solo lectura `TEMP T-200 contencion` creado desde la interfaz, probado en una BD aparte con el código que tiene el error (falla → permiso → confirma → se borra → vuelve a fallar).
+  - Commit causante `3f4d73f` identificado con `git log` y el diff; pasó la revisión porque las pruebas dejaron de ejecutarse como vendedor (se quitó `.with_user(user)`).
+  - Pasos de despliegue (`-u sale_commission`, borrar el permiso temporal) y verificación, y mensaje al cliente de 3 líneas en `INCIDENT.md` (secciones 6 a 9).
+  - Sin cambios de código: 5/5 tests en verde, 83% de cobertura.
+  - Rama base integrada en `hotfix/T-200` para que el PR no tenga conflictos; `README.md` y `AI_LOG.md` actualizados.
+
 ---
 
 ## 4. Tarea Actual en Ejecución
 - **Módulos:** `shop_integration_api`, `fleet_inspection`, `sale_commission`, `payment_request`
 - **Objetivo:** Batería oficial completa de los 4 módulos verificada sobre base limpia (`prueba_limpia_audit`) con 36/36 tests en verde (100% de éxito) y 85% de cobertura global consolidada. Tramos A completados rigurosamente según especificaciones de Binaural.
-- **Último avance:** Ejercicio 2 Tramo B completado. Batería oficial sobre `prueba_limpia`: 40/40 tests en verde, 4/4 módulos instalados, 85% de cobertura global.
+- **Último avance:** Ejercicio 3 Tramo B completado en `hotfix/T-200` (PR abierto). Antes: Ejercicio 2 Tramo B completado. Batería oficial sobre `prueba_limpia`: 40/40 tests en verde, 4/4 módulos instalados, 85% de cobertura global.
