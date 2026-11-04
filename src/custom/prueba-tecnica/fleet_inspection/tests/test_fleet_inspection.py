@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests.common import Form, TransactionCase, tagged
+from odoo.tests import Form
+from odoo.tests.common import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
