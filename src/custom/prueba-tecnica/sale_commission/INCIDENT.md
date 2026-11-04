@@ -113,7 +113,7 @@ Tras aplicar la línea en `ir.model.access.csv`, se ejecutó nuevamente la suite
 ## 6. Contención en los primeros 15 minutos
 
 ### Medida
-Antes de tener la corrección desplegada, un administrador crea desde la interfaz **un permiso de solo lectura** sobre las reglas de comisión para el grupo de vendedores:
+A las 5:40 p.m. todavía no hay corrección escrita ni probada, y desplegarla antes de abrir el sábado no está garantizado. El propio error rojo que ven los vendedores ya dice qué falta: *«You are not allowed to access 'Comisión por categoría de producto' (sale.commission.rule) records. This operation is allowed for the following groups: Sales/Administrator»*. Es decir, los vendedores necesitan poder **leer** ese modelo. Con solo esa información, en los primeros 15 minutos un administrador crea desde la interfaz **un permiso de solo lectura** sobre las reglas de comisión para el grupo de vendedores:
 
 - Ruta: *Ajustes → Técnico → Seguridad → Derechos de acceso → Nuevo*.
 - Nombre: `TEMP T-200 contencion`.
@@ -121,7 +121,7 @@ Antes de tener la corrección desplegada, un administrador crea desde la interfa
 - Grupo: *Ventas / Usuario: solo documentos propios* (`sales_team.group_sale_salesman`).
 - Permisos: solo **Leer**. Escribir, Crear y Eliminar quedan sin marcar.
 
-Toma unos 2 minutos, no requiere desplegar código ni reiniciar el servidor y tiene el mismo efecto que la corrección definitiva (sección 4).
+Toma unos 2 minutos y no requiere escribir ni desplegar código ni reiniciar el servidor. Da a los vendedores el acceso mínimo que pide el error (solo lectura), sin darles el grupo del gerente. Cuando después se analizó la causa (sección 3), la corrección definitiva resultó ser el mismo permiso, pero dentro del módulo (sección 4).
 
 ### Por qué es reversible
 Basta con borrar o archivar el registro `TEMP T-200 contencion` para volver exactamente al estado anterior. No toca datos de pedidos ni el código del módulo.
@@ -198,3 +198,47 @@ No se ejecutó: `3f4d73f` es el único commit de código entre la versión que f
 2. **Lo que falta no aparece en el diff.** En `ir.model.access.csv` solo se añade una línea, la del gerente, que es correcta. La línea ausente, la del vendedor, no se ve en la revisión.
 3. **El mensaje del commit orienta hacia el gerente.** Dice «configurable desde la categoría por el gerente de ventas», lo que lleva a pensar solo en ese rol. Sin embargo, `_get_commission_percent()` se ejecuta al confirmar el pedido, es decir, con el usuario vendedor.
 4. **Nadie confirmó un pedido con un vendedor antes de desplegar.** Las pruebas estaban en verde y no hubo una prueba manual con ese rol.
+
+---
+
+## 8. Despliegue de la corrección y verificación en producción
+
+**Módulo que se actualiza:** solo `sale_commission`. La corrección es una línea en `security/ir.model.access.csv`, que solo llega a la base de datos al actualizar el módulo; reiniciar el servidor no basta.
+
+### Antes
+1. Acordar con el cliente una ventana fuera del horario de ventas. Mientras tanto la contención de la sección 6 sigue activa, así que no hay prisa por hacerlo en horario comercial.
+2. Respaldar la base de datos de producción y anotar la versión instalada del módulo (*Aplicaciones → sale_commission*, hoy `1.1.0`):
+   ```bash
+   pg_dump -Fc -d <bd_produccion> -f <bd_produccion>_antes_T-200.dump
+   ```
+
+### Despliegue
+3. Integrar el PR de `hotfix/T-200` y llevar ese código al servidor de producción (`git pull` de la rama que usa producción).
+4. Actualizar **solo** `sale_commission`, nombrándolo explícitamente:
+   ```bash
+   ./odoo update <instancia> -d <bd_produccion> -m sale_commission   # equivale a: odoo -u sale_commission -d <bd_produccion>
+   ```
+   Se nombra el módulo porque la corrección no cambia el número de versión (`1.1.0`); una actualización automática de «solo lo que cambió» podría no recargar el CSV.
+5. Reiniciar el servicio de Odoo (`./odoo restart <instancia>`) para que todos los procesos usen el registro actualizado.
+6. **Borrar el permiso temporal** `TEMP T-200 contencion` (*Ajustes → Técnico → Seguridad → Derechos de acceso*). La actualización del módulo no lo borra, porque se creó a mano y no pertenece al módulo.
+
+### Verificación después del despliegue
+| # | Qué se verifica | Resultado esperado |
+|---|---|---|
+| 1 | *Derechos de acceso* filtrado por el modelo *Comisión por categoría de producto* | Exactamente 2 líneas: gerente con todos los permisos y vendedor solo lectura. Ninguna llamada `TEMP T-200 contencion`. |
+| 2 | Con un **usuario vendedor real**: crear y confirmar un pedido de un producto cuya categoría tiene comisión | Se confirma y la línea muestra el porcentaje de la categoría. |
+| 3 | Con el **gerente**: confirmar un pedido y cambiar el porcentaje de una categoría | Ambas cosas siguen funcionando. |
+| 4 | Con el **vendedor**: intentar cambiar el porcentaje de una categoría | No puede. |
+| 5 | Log del servidor durante la actualización y las pruebas (`./odoo logs <instancia>`) | Sin `AccessError` ni errores al cargar `sale_commission`. |
+
+### Si algo falla
+- Si el vendedor vuelve a no poder confirmar: crear de nuevo el permiso temporal de la sección 6. El cliente puede seguir vendiendo mientras se investiga.
+- Restaurar el respaldo del paso 2 solo si la actualización dañó datos, no por un problema de permisos.
+
+---
+
+## 9. Mensaje al cliente
+
+> Hola, ya encontramos la causa: la actualización instalada hoy al mediodía dejó a los vendedores sin permiso para consultar el porcentaje de comisión, y por eso no podían confirmar pedidos.
+> En los próximos 15 minutos activaremos una solución temporal para que todos los vendedores confirmen pedidos con normalidad mañana desde las 8:00 a.m.; les avisaremos cuando esté lista para que lo prueben con un vendedor.
+> La corrección definitiva la instalaremos en un horario acordado con ustedes, sin afectar sus ventas.
