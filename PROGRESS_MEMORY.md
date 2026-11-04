@@ -18,8 +18,8 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
 |---|---|:---:|:---:|:---:|---|
 | **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (15/15 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
 | **2. Migración** | `fleet_inspection` | ✅ Completado (9/9 tests, 93% cov) | ⏳ Pendiente | ⏳ Pendiente | Tabla cambios, `README.md`, `AI_LOG.md` |
-| **3. Ticket Urgente** | `sale_commission` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, PR |
-| **4. Solicitudes Pago** | `payment_request` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `ARCHITECTURE.md` |
+| **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
+| **4. Solicitudes Pago** | `payment_request` | ✅ Completado (8/8 tests) | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `README.md`, `AI_LOG.md` |
 
 ---
 
@@ -48,8 +48,27 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
   - Documentación obligatoria con tabla formal de cambios en `README.md` y bitácora en `AI_LOG.md`.
   - 3 commits atómicos con prefijos `[MIG]`, `[TEST]`, `[DOC]`.
 
+- [x] **Tramo A `sale_commission` (Ejercicio 3 — Ticket T-200):**
+  - Rama `hotfix/T-200` creada a partir de `master-multi-prueba-tecnica`.
+  - Reproducción formal del fallo con test unitario ejecutado bajo usuario vendedor (`test_salesman_can_confirm_order_with_category_commission`), confirmando `AccessError` en la fase roja.
+  - Corrección mínima bajo principio de menor privilegio en `security/ir.model.access.csv`: permiso exclusivo de lectura (`1,0,0,0`) al grupo `sales_team.group_sale_salesman` sobre `sale.commission.rule`.
+  - Fase verde superada con 5/5 tests en éxito y 83% de cobertura.
+  - Creación de documentación del incidente en `INCIDENT.md` y bitácora en `AI_LOG.md`.
+
+- [x] **Tramo A `payment_request` (Ejercicio 4):**
+  - Creación del módulo base `payment_request` con dependencias `base` y `mail`.
+  - Modelo `payment.request` con `mail.thread` y `mail.activity.mixin`, secuencia automática `SP/%(year)s/0001` al enviar.
+  - Validación de monto estrictamente positivo (`amount > 0`).
+  - Inmutabilidad estricta tras envío en `write()` y reglas de borrado seguro en `unlink()`.
+  - Seguridad jerárquica: `Solicitante` (`group_payment_request_user`), `Aprobador` (`group_payment_request_approver`) y `Tesorería` (`group_payment_request_manager`).
+  - Reglas de registro con aislamiento de visibilidad (`ir.rule`) para que solicitantes solo vean sus solicitudes y aprobadores vean todas.
+  - Restricción de método en `action_approve()` y `action_reject()` con `AccessError` para no aprobadores.
+  - Vistas modernas Odoo 18: `<list>` decorada, `<form>` con `<chatter/>` y `<search>` con filtros por estado y agrupaciones.
+  - Suite de 8 pruebas unitarias automatizadas (`test_payment_request.py`).
+  - Documentación obligatoria en `README.md` con sección de «Supuestos y preguntas al cliente» (Carolina Méndez) y bitácora `AI_LOG.md`.
+
 ---
 
 ## 4. Tarea Actual en Ejecución
-- **Módulo:** `sale_commission` (Ejercicio 3)
-- **Objetivo:** Tramo A — Ticket urgente T-200. Creación de rama `hotfix/T-200`, reproducción de fallo con vendedor, test que falle y corrección mínima.
+- **Módulo:** `payment_request` (Ejercicio 4)
+- **Objetivo:** Tramo A completado. Listo para verificación de tests en entorno Docker y preparación de commits o continuación con Tramo B.
