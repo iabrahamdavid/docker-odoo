@@ -17,7 +17,7 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
 | Ejercicio | Módulo | Tramo A | Tramo B | Tramo C | Notas / Entregables |
 |---|---|:---:|:---:|:---:|---|
 | **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (15/15 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
-| **2. Migración** | `fleet_inspection` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Mover de `prueba-tecnica-odoo16/`, tabla cambios, `MIGRATION_PLAN.md` |
+| **2. Migración** | `fleet_inspection` | ✅ Completado (9/9 tests, 93% cov) | ⏳ Pendiente | ⏳ Pendiente | Tabla cambios, `README.md`, `AI_LOG.md` |
 | **3. Ticket Urgente** | `sale_commission` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, PR |
 | **4. Solicitudes Pago** | `payment_request` | ⏳ Pendiente | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `ARCHITECTURE.md` |
 
@@ -39,8 +39,17 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
   - 15 tests automatizados pasando en verde (100% éxito, 0 errores, 0 fallos).
   - Documentación actualizada en `README.md` y `AI_LOG.md`.
 
+- [x] **Tramo A `fleet_inspection` (Ejercicio 2):**
+  - Reubicación a `src/custom/prueba-tecnica/fleet_inspection`.
+  - Migración a Odoo 18: manifiesto (`18.0.1.0.0`), modelos (`_compute_display_name`, `@api.model_create_multi`, eliminación de `states={...}`).
+  - Modernización de vistas XML: adopción de `<list>`, `<chatter/>`, atributos nativos `invisible` y `readonly`.
+  - Corrección en datos de cron: eliminación de campos removidos en Odoo 18 (`numbercall` y `doall`).
+  - 9 tests automatizados pasando en verde (100% éxito, 0 fallos, 0 errores, 93% cobertura).
+  - Documentación obligatoria con tabla formal de cambios en `README.md` y bitácora en `AI_LOG.md`.
+  - 3 commits atómicos con prefijos `[MIG]`, `[TEST]`, `[DOC]`.
+
 ---
 
 ## 4. Tarea Actual en Ejecución
-- **Módulo:** `shop_integration_api` (Ejercicio 1)
-- **Objetivo:** Tramo B culminado con éxito. Próximo paso: Tramo C (Paginación, idempotencia con `Idempotency-Key`, optimización de stock y webhook) o commits atómicos de cierre.
+- **Módulo:** `sale_commission` (Ejercicio 3)
+- **Objetivo:** Tramo A — Ticket urgente T-200. Creación de rama `hotfix/T-200`, reproducción de fallo con vendedor, test que falle y corrección mínima.
