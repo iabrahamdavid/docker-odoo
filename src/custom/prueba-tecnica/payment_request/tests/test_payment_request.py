@@ -1,5 +1,6 @@
 from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tests import Form
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -280,3 +281,40 @@ class TestPaymentRequest(TransactionCase):
             as_applicant.write({"approved_by_id": self.user_approver.id})
         with self.assertRaises(AccessError):
             self._create_request(user=self.user_applicant_1, approver_id=self.user_applicant_1.id)
+
+    # ------------------------------------------------------------------
+    # Tramo B: rechazo con motivo
+    # ------------------------------------------------------------------
+
+    def test_15_reject_wizard_requires_reason_and_posts_it(self):
+        """El wizard exige el motivo y lo publica en el chatter, notificando al solicitante."""
+        req = self._create_request(user=self.user_applicant_1)
+        req.action_submit()
+        wizard_env = self.env(user=self.user_approver, context={"default_request_id": req.id})
+
+        form = Form(wizard_env["payment.request.reject.wizard"])
+        with self.assertRaises(AssertionError):
+            form.save()  # el motivo es obligatorio
+
+        form.reason = "Falta la factura del proveedor"
+        form.save().action_confirm()
+
+        self.assertEqual(req.state, "rejected")
+        message = req.message_ids.filtered(lambda m: "Falta la factura del proveedor" in (m.body or ""))
+        self.assertTrue(message, "el motivo queda en el chatter")
+        self.assertIn(self.user_applicant_1.partner_id, message.notified_partner_ids)
+        self.assertFalse(req.activity_ids, "la actividad de aprobación se cierra al rechazar")
+
+    def test_16_reject_without_reason_or_by_other_approver_fails(self):
+        """Sin el wizard tampoco se puede rechazar sin motivo, ni puede hacerlo otro aprobador."""
+        manager = self._create_management_level()
+        req = self._create_request(user=self.user_applicant_1, amount=500.0)
+        req.action_submit()
+        as_assigned = req.with_user(self.user_approver)
+
+        for reason in (None, "", "   "):
+            with self.assertRaises(UserError):
+                as_assigned.action_reject(reason)
+        with self.assertRaises(AccessError):
+            req.with_user(manager).action_reject("Motivo de otro aprobador")
+        self.assertEqual(req.state, "submitted")
