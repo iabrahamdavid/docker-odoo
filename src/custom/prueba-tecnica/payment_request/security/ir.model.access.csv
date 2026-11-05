@@ -4,3 +4,4 @@ access_payment_request_approver,payment.request.approver,model_payment_request,g
 access_payment_request_manager,payment.request.manager,model_payment_request,group_payment_request_manager,1,1,1,1
 access_payment_approval_level_user,payment.approval.level.user,model_payment_approval_level,group_payment_request_user,1,0,0,0
 access_payment_approval_level_manager,payment.approval.level.manager,model_payment_approval_level,group_payment_request_manager,1,1,1,1
+access_payment_request_reject_wizard_approver,payment.request.reject.wizard.approver,model_payment_request_reject_wizard,group_payment_request_approver,1,1,1,0

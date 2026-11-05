@@ -198,13 +198,23 @@ class PaymentRequest(models.Model):
             })
             req.activity_feedback(["mail.mail_activity_data_todo"])
 
-    def action_reject(self):
-        if not self.env.user.has_group("payment_request.group_payment_request_approver"):
-            raise AccessError(_("Solo los usuarios autorizados como Aprobadores pueden rechazar solicitudes de pago."))
+    def action_reject(self, reason=None):
+        """Reject with a mandatory reason, posted in the chatter so the applicant
+        (a follower since creating the request) is notified of it. Called from the
+        reject wizard; the reason is also enforced here so RPC cannot skip it."""
         for req in self:
             if req.state != "submitted":
                 raise UserError(_("Solo se pueden rechazar solicitudes en estado Enviada."))
+            if req.approver_id != self.env.user:
+                raise AccessError(_("Solo el aprobador asignado a esta solicitud puede rechazarla."))
+            if not (reason or "").strip():
+                raise UserError(_("Debe indicar el motivo del rechazo."))
             super(PaymentRequest, req).write({"state": "rejected"})
+            req.message_post(
+                body=_("Solicitud rechazada. Motivo: %s", reason.strip()),
+                subtype_xmlid="mail.mt_comment",
+            )
+            req.activity_feedback(["mail.mail_activity_data_todo"])
 
     def action_reset_to_draft(self):
         for req in self:

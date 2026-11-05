@@ -18,11 +18,12 @@
                             class="oe_highlight"
                             groups="payment_request.group_payment_request_approver"
                             invisible="state != 'submitted' or approver_id != uid"/>
-                    <button name="action_reject"
+                    <button name="%(action_payment_request_reject_wizard)d"
                             string="Rechazar"
-                            type="object"
+                            type="action"
+                            context="{'default_request_id': id}"
                             groups="payment_request.group_payment_request_approver"
-                            invisible="state != 'submitted'"/>
+                            invisible="state != 'submitted' or approver_id != uid"/>
                     <button name="action_reset_to_draft"
                             string="Restablecer a Borrador"
                             type="object"

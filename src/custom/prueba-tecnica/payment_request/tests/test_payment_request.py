@@ -141,14 +141,14 @@ class TestPaymentRequest(TransactionCase):
         # Flujo de rechazo en otra solicitud
         req_2 = self._create_request(user=self.user_applicant_1)
         req_2.action_submit()
-        req_2.with_user(self.user_approver).action_reject()
+        req_2.with_user(self.user_approver).action_reject("Falta la factura del proveedor")
         self.assertEqual(req_2.state, "rejected")
 
     def test_06_reset_to_draft(self):
         """Verifica que una solicitud rechazada pueda ser restablecida a borrador para corrección."""
         req = self._create_request(user=self.user_applicant_1)
         req.action_submit()
-        req.with_user(self.user_approver).action_reject()
+        req.with_user(self.user_approver).action_reject("Monto incorrecto")
         self.assertEqual(req.state, "rejected")
 
         # Restablecer a borrador
