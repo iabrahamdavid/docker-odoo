@@ -215,3 +215,68 @@ class TestPaymentRequest(TransactionCase):
         self.assertEqual(req.state, "submitted")
         self.assertEqual(req.name, number)
 
+    # ------------------------------------------------------------------
+    # Tramo B: niveles de aprobación y aprobador asignado
+    # ------------------------------------------------------------------
+
+    def _create_management_level(self):
+        """Segundo nivel: desde 10.000 aprueba gerencia (otro usuario aprobador)."""
+        manager = self.env["res.users"].create({
+            "name": "Gerencia General",
+            "login": "approver_2",
+            "email": "approver_2@example.com",
+            "groups_id": [(6, 0, [self.group_approver.id])],
+        })
+        self.env["payment.approval.level"].create({"min_amount": 10000.0, "approver_id": manager.id})
+        return manager
+
+    def test_10_approver_assigned_by_amount(self):
+        """Al enviar se asigna el nivel con mayor monto mínimo que no supere el monto."""
+        manager = self._create_management_level()
+        for amount, expected in ((500.0, self.user_approver), (10000.0, manager), (15000.0, manager)):
+            req = self._create_request(user=self.user_applicant_1, amount=amount)
+            req.action_submit()
+            self.assertEqual(req.approver_id, expected, f"monto {amount}")
+
+    def test_11_submit_creates_activity_for_assigned_approver(self):
+        """El envío, hecho por el solicitante, crea una actividad para el aprobador asignado."""
+        req = self._create_request(user=self.user_applicant_1)
+        req.action_submit()
+        self.assertEqual(req.activity_ids.user_id, self.user_approver)
+        self.assertEqual(req.activity_ids.activity_type_id, self.env.ref("mail.mail_activity_data_todo"))
+
+    def test_12_submit_without_applicable_level_fails(self):
+        """Sin un nivel que cubra el monto, la solicitud no se puede enviar."""
+        self.env["payment.approval.level"].search([]).unlink()
+        req = self._create_request(user=self.user_applicant_1)
+        with self.assertRaises(UserError):
+            req.action_submit()
+        self.assertEqual(req.state, "draft")
+
+    def test_13_only_assigned_approver_can_approve(self):
+        """Otro aprobador no puede aprobar; el asignado sí, y quedan quién y cuándo."""
+        manager = self._create_management_level()
+        req = self._create_request(user=self.user_applicant_1, amount=500.0)
+        req.action_submit()
+        self.assertEqual(req.approver_id, self.user_approver)
+
+        with self.assertRaises(AccessError):
+            req.with_user(manager).action_approve()
+        self.assertEqual(req.state, "submitted")
+
+        req.with_user(self.user_approver).action_approve()
+        self.assertEqual(req.state, "approved")
+        self.assertEqual(req.approved_by_id, self.user_approver)
+        self.assertTrue(req.approved_date)
+        self.assertFalse(req.activity_ids, "la actividad de aprobación se cierra al aprobar")
+
+    def test_14_approval_fields_cannot_be_forged(self):
+        """El solicitante no puede elegir su aprobador ni falsear los datos de aprobación."""
+        req = self._create_request(user=self.user_applicant_1)
+        as_applicant = req.with_user(self.user_applicant_1)
+        with self.assertRaises(AccessError):
+            as_applicant.write({"approver_id": self.user_applicant_1.id})
+        with self.assertRaises(AccessError):
+            as_applicant.write({"approved_by_id": self.user_approver.id})
+        with self.assertRaises(AccessError):
+            self._create_request(user=self.user_applicant_1, approver_id=self.user_applicant_1.id)
