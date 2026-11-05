@@ -70,6 +70,39 @@ Cada llamada a los endpoints de la API (exitosa o con error 401, 400, 422) se re
 - `request_date`: Marca temporal de la petición.
 - **Seguridad:** En ningún caso se almacena el token o API Key en logs ni en texto plano.
 
+### C. Formato de respuestas y errores (para la tienda)
+
+Todas las respuestas son JSON.
+
+**Respuestas correctas**
+- `GET /api/v1/products` → `200`, una lista de productos: `[{"id", "default_code", "name", "list_price", "qty_available"}, ...]`.
+- `POST /api/v1/orders` → `201`, el pedido creado (queda como cotización): `{"id", "name", "client_order_ref", "amount_total", "state"}`.
+
+**Cuerpo de error.** Siempre tiene la misma forma. `field` indica el dato exacto que falló y solo aparece cuando el error es de un campo concreto. En las líneas, el índice empieza en 0 (`lines[1]` es la segunda línea).
+```json
+{
+  "error": {
+    "code": "PRODUCT_NOT_FOUND",
+    "field": "lines[1].default_code",
+    "message": "No existe un producto con el código TOOL-999"
+  }
+}
+```
+
+| HTTP | `code` | `field` | Cuándo ocurre |
+|---|---|---|---|
+| 400 | `INVALID_CATEGORY_ID` | `category_id` | `category_id` no es un número entero |
+| 400 | `INVALID_DATE_FORMAT` | `updated_since` | La fecha no está en formato ISO 8601 (`YYYY-MM-DD` o `YYYY-MM-DDTHH:MM:SS`) |
+| 400 | `INVALID_JSON` | — | El cuerpo del `POST` está vacío o no es JSON válido |
+| 400 | `INVALID_PAYLOAD` | — | El cuerpo es JSON pero no es un objeto |
+| 401 | `UNAUTHORIZED` | — | Falta la cabecera `Authorization: Bearer <clave>` o la clave no es válida |
+| 422 | `CUSTOMER_NOT_FOUND` | `customer_rif` | Falta el RIF o no existe un cliente con ese RIF |
+| 422 | `MISSING_FIELD` | `client_order_ref` | Falta la referencia externa del pedido |
+| 422 | `EMPTY_LINES` | `lines` | El pedido no tiene líneas |
+| 422 | `INVALID_LINE` | `lines[i]` | Una línea no es un objeto |
+| 422 | `PRODUCT_NOT_FOUND` | `lines[i].default_code` | Falta el código de producto o no existe un producto activo con ese código |
+| 422 | `INVALID_QUANTITY` | `lines[i].quantity` | La cantidad falta, no es numérica o es cero o negativa |
+
 ---
 
 ## 3. Supuestos y Decisiones de Diseño
