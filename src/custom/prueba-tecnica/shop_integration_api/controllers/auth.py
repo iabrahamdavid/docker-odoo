@@ -55,7 +55,7 @@ def api_endpoint(require_auth=True):
                                 status=401,
                             )
 
-                        uid = request.env["res.users.apikeys"].sudo()._check_credentials(
+                        uid = request.env["res.users.apikeys"]._check_credentials(
                             scope="rpc", key=token
                         )
                         if not uid:
