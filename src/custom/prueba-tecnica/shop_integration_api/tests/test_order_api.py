@@ -220,3 +220,26 @@ class TestShopOrderApi(HttpCase):
         self.assertEqual(logs.user_id.id, self.api_user.id)
         self.assertGreater(logs.duration, 0.0)
 
+    def test_09_failed_calls_are_logged_without_key(self):
+        """Las llamadas rechazadas con 401 también quedan en shop.api.log, sin guardar la clave."""
+        Log = self.env["shop.api.log"]
+        domain = [("endpoint", "=", "/api/v1/orders"), ("status_code", "=", 401)]
+        initial_count = Log.search_count(domain)
+        bad_token = "clave_invalida_que_no_debe_guardarse"
+        payload = json.dumps({
+            "customer_rif": "J-12345678-9",
+            "client_order_ref": "TIENDA-ORD-LOG-401",
+            "lines": [{"default_code": "TOOL-001", "quantity": 1}],
+        })
+
+        # Sin cabecera Authorization y con una clave inválida.
+        for headers in ({"Content-Type": "application/json"}, self._auth_headers(token=bad_token)):
+            response = self.url_open("/api/v1/orders", data=payload, headers=headers)
+            self.assertEqual(response.status_code, 401)
+
+        logs = Log.search(domain, order="id desc", limit=2)
+        self.assertEqual(Log.search_count(domain), initial_count + 2)
+        self.assertFalse(logs.user_id)
+        for log in logs:
+            values = log.read(["name", "endpoint", "method", "remote_addr"])[0]
+            self.assertNotIn(bad_token, str(values))
