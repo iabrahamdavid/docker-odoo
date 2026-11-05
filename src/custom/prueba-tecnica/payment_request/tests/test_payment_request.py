@@ -318,3 +318,24 @@ class TestPaymentRequest(TransactionCase):
         with self.assertRaises(AccessError):
             req.with_user(manager).action_reject("Motivo de otro aprobador")
         self.assertEqual(req.state, "submitted")
+
+    # ------------------------------------------------------------------
+    # Tramo B: reporte PDF
+    # ------------------------------------------------------------------
+
+    def test_17_report_shows_who_approved_and_when(self):
+        """El reporte de la solicitud muestra quién aprobó y cuándo."""
+        req = self._create_request(user=self.user_applicant_1)
+        req.action_submit()
+        report = self.env["ir.actions.report"].with_user(self.user_applicant_1)
+        report_name = "payment_request.report_payment_request"
+
+        html = report._render_qweb_html(report_name, req.ids)[0].decode()
+        self.assertIn("Pendiente de aprobación", html)
+
+        req.with_user(self.user_approver).action_approve()
+        html = report._render_qweb_html(report_name, req.ids)[0].decode()
+        self.assertIn(self.user_approver.name, html)
+        approved_date = fields.Datetime.context_timestamp(req, req.approved_date).strftime("%m/%d/%Y")
+        self.assertIn(approved_date, html)
+        self.assertNotIn("Pendiente de aprobación", html)
