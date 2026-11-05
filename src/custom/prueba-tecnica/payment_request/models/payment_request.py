@@ -89,6 +89,13 @@ class PaymentRequest(models.Model):
         readonly=True,
         copy=False,
     )
+    payment_id = fields.Many2one(
+        "account.payment",
+        string="Pago",
+        readonly=True,
+        copy=False,
+        tracking=True,
+    )
 
     def _compute_display_name(self):
         for req in self:
@@ -110,8 +117,8 @@ class PaymentRequest(models.Model):
                     raise AccessError(_("No tiene autorización para crear solicitudes en un estado diferente a borrador."))
                 if vals.get("name") and vals["name"] != "/":
                     raise AccessError(_("La secuencia de la solicitud es automática y no puede ser manipulada manualmente."))
-            if not self.env.su and {"approver_id", "approved_by_id", "approved_date"} & vals.keys():
-                raise AccessError(_("El aprobador y los datos de aprobación se asignan automáticamente."))
+            if not self.env.su and {"approver_id", "approved_by_id", "approved_date", "payment_id"} & vals.keys():
+                raise AccessError(_("El aprobador y los datos de aprobación y de pago se asignan automáticamente."))
         return super().create(vals_list)
 
     def write(self, vals):
@@ -126,10 +133,10 @@ class PaymentRequest(models.Model):
             if "name" in vals:
                 raise AccessError(_("La secuencia es automática y no puede ser modificada manualmente."))
 
-            # 3. The approver is assigned on submit and the approval data is set
-            # on approve; nobody may choose or forge them directly.
-            if {"approver_id", "approved_by_id", "approved_date"} & vals.keys():
-                raise AccessError(_("El aprobador y los datos de aprobación se asignan automáticamente."))
+            # 3. The approver is assigned on submit, the approval data on approve and
+            # the payment on pay; nobody may choose or forge them directly.
+            if {"approver_id", "approved_by_id", "approved_date", "payment_id"} & vals.keys():
+                raise AccessError(_("El aprobador y los datos de aprobación y de pago se asignan automáticamente."))
 
             # 4. Bloqueo de campos de negocio una vez enviada
             restricted_fields = {
@@ -215,6 +222,26 @@ class PaymentRequest(models.Model):
                 subtype_xmlid="mail.mt_comment",
             )
             req.activity_feedback(["mail.mail_activity_data_todo"])
+
+    def action_pay(self, journal):
+        """Create and post the vendor payment of an approved request and link it.
+        Called from the pay wizard; the checks are here so RPC cannot skip them."""
+        self.ensure_one()
+        if not self.env.user.has_group("payment_request.group_payment_request_manager"):
+            raise AccessError(_("Solo Tesorería puede pagar solicitudes."))
+        if self.payment_id or self.state != "approved":
+            raise UserError(_("Solo se pueden pagar solicitudes aprobadas que todavía no tengan pago."))
+        payment = self.env["account.payment"].create({
+            "payment_type": "outbound",
+            "partner_type": "supplier",
+            "partner_id": self.partner_id.id,
+            "amount": self.amount,
+            "currency_id": self.currency_id.id,
+            "journal_id": journal.id,
+            "memo": self.name,
+        })
+        payment.action_post()
+        super(PaymentRequest, self).write({"state": "paid", "payment_id": payment.id})
 
     def action_reset_to_draft(self):
         for req in self:

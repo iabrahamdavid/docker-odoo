@@ -24,6 +24,13 @@
                             context="{'default_request_id': id}"
                             groups="payment_request.group_payment_request_approver"
                             invisible="state != 'submitted' or approver_id != uid"/>
+                    <button name="%(action_payment_request_pay_wizard)d"
+                            string="Pagar"
+                            type="action"
+                            class="oe_highlight"
+                            context="{'default_request_id': id}"
+                            groups="payment_request.group_payment_request_manager"
+                            invisible="state != 'approved'"/>
                     <button name="action_reset_to_draft"
                             string="Restablecer a Borrador"
                             type="object"
@@ -45,6 +52,7 @@
                             <field name="approver_id" invisible="not approver_id"/>
                             <field name="approved_by_id" invisible="not approved_by_id"/>
                             <field name="approved_date" invisible="not approved_date"/>
+                            <field name="payment_id" invisible="not payment_id"/>
                         </group>
                         <group string="Importe y Moneda">
                             <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"/>
