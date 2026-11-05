@@ -29,3 +29,36 @@
 ## Lo que escribiste tú sin IA
 - Análisis del correo de Carolina Méndez identificando las 5 preguntas clave de consultoría (umbral entre pago normal y grande, modelado del jefe de área en RRHH, política de rechazo vs nueva solicitud, y fijación de tasas de cambio USD/VES).
 - Criterio de auditoría técnica exigiendo verificar empíricamente cada módulo con el CLI oficial de Docker (`./odoo test`) antes de considerar cualquier tramo como completado.
+
+---
+
+# Tramo B — niveles de aprobación, wizards y PDF
+
+## Herramientas
+- Claude Code (Claude Opus 5.5) en VS Code sobre Linux, con acceso al repositorio y a los contenedores Docker de la instancia `prueba-tecnica`.
+
+## Prompts clave (3 a 5)
+1. **Plan antes de programar:**
+   - *Prompt:* "Genera el plan con todo lo que hemos hablado, trabaja como un desarrollador senior con experiencia en Binaural; revisa los commits de binaural-dev/docker-odoo para ver cómo se manejan".
+   - *Resultado:* Un plan con el diseño de cada pieza, las pruebas ligadas a cada criterio, las decisiones pendientes y los commits. De los commits de Binaural se tomó el cuerpo del mensaje (qué cambia, por qué y cómo se verificó).
+2. **Ceñirse al enunciado:**
+   - *Prompt:* "Realiza los cambios en base exclusivamente a los requerimientos de la prueba técnica, verifica minuciosamente y sin agregar cosas de más; cuida los commits".
+   - *Resultado:* Se recortó el diseño (sin nombre ni compañía en los niveles, sin botón inteligente ni fecha en el wizard de pago) y se añadió una comprobación por commit: cada prueba nueva debe fallar al quitar la regla que cubre.
+3. **Revisión de lo implementado:**
+   - *Prompt:* "¿Crees que se cumple justo la prueba técnica?".
+   - *Resultado:* Tabla de criterios frente a código; se identificó el único extra (cerrar la actividad al aprobar o rechazar) y se decidió mantenerlo porque, sin él, el aprobador conserva tareas ya resueltas.
+
+## Lo que la IA hizo mal
+- **Usuarios de prueba sin email:** al crear la actividad del aprobador, Odoo le notifica por correo con el solicitante como remitente; sin email falla con *"Unable to send message, please configure the sender's email address"*.
+  - *Cómo se detectó:* 7 pruebas del Tramo A fallaron al ejecutar la suite; se dio email a los usuarios de prueba y se anotó como supuesto en el README.
+- **Pruebas de pago que no se ejecutaban:** el `setUpClass` de la clase de pago creaba los niveles con el usuario contable de `AccountTestInvoicingCommon`, que no tiene permiso; las 4 pruebas no corrieron y el resumen del CLI mostraba "Errores: 0".
+  - *Cómo se detectó:* el número de pruebas no subió (16 en vez de 20) y el log mostraba `ERROR: setUpClass`. Los niveles se crean ahora con el usuario de Tesorería.
+- **Primer diseño con piezas de más:** el plan inicial incluía campos y botones que ningún criterio pide.
+  - *Cómo se detectó:* lo pedí yo al exigir solo lo del enunciado; se revisó cada pieza contra los criterios.
+
+## Lo que escribiste tú sin IA
+- No escribí código ni documentación sin IA en este tramo. Mi trabajo fue dirigir y revisar:
+  - Fijar el alcance: exigí ceñirse a los criterios del enunciado, lo que llevó a quitar piezas que ninguno pedía.
+  - Revisar el cumplimiento: pregunté si se cumplía justo lo pedido y evalué el único extra (cerrar la actividad) antes de aceptarlo.
+  - Decidir sobre el repositorio: sacar `PROGRESS_MEMORY.md` del PR del T-200, no reescribir historia y evitar commits sueltos de documentación.
+  - Aprobar cada commit después de ver su contenido y su verificación.

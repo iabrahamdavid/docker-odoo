@@ -16,10 +16,10 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
 
 | Ejercicio | Módulo | Tramo A | Tramo B | Tramo C | Notas / Entregables |
 |---|---|:---:|:---:|:---:|---|
-| **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (15/15 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
+| **1. API Tienda** | `shop_integration_api` | ✅ Completado | ✅ Completado (16/16 tests, 77% cov) | ⏳ Pendiente | `README.md`, `AI_LOG.md` |
 | **2. Migración** | `fleet_inspection` | ✅ Completado (9/9 tests, 93% cov) | ✅ Completado (12/12 tests, 94% cov) | ⏳ Pendiente | Tabla cambios, `migrations/`, `README.md`, `AI_LOG.md` |
-| **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ⏳ Pendiente | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
-| **4. Solicitudes Pago** | `payment_request` | ✅ Completado (8/8 tests, 90% cov) | ⏳ Pendiente | ⏳ Pendiente | Supuestos Carolina, `README.md`, `AI_LOG.md` |
+| **3. Ticket Urgente** | `sale_commission` | ✅ Completado (5/5 tests, 83% cov) | ✅ Completado (solo documentación) | ⏳ Pendiente | Rama `hotfix/T-200`, `INCIDENT.md`, `AI_LOG.md`, PR |
+| **4. Solicitudes Pago** | `payment_request` | ✅ Completado (9/9 tests) | ✅ Completado (21/21 tests, 94% cov) | ⏳ Pendiente | Supuestos Carolina, `README.md`, `AI_LOG.md` |
 
 ---
 
@@ -76,9 +76,27 @@ Este archivo mantiene el estado continuo del desarrollo. Si la ventana de contex
   - Blindaje contra auto-aprobación en `write()` y `create()` ante manipulaciones directas de `state` y `name`.
   - Documentación obligatoria en `README.md` con sección de «Supuestos y preguntas al cliente» (Carolina Méndez), limitaciones conocidas y bitácora transparente `AI_LOG.md`.
 
+- [x] **Tramo B `sale_commission` (Ejercicio 3 — Ticket T-200, en la rama `hotfix/T-200`, PR abierto):**
+  - Contención de 15 minutos probada: permiso temporal de solo lectura `TEMP T-200 contencion` (falla → permiso → confirma → se borra → vuelve a fallar).
+  - Commit causante `3f4d73f` y por qué pasó la revisión (las pruebas dejaron de ejecutarse como vendedor).
+  - Pasos de despliegue (`-u sale_commission`, borrar el permiso temporal) y verificación, y mensaje al cliente en `INCIDENT.md`.
+  - El PR solo contiene archivos del T-200; este archivo se lleva en la rama base.
+
+- [x] **Revisión previa a la entrega (`shop_integration_api`, 1.B):**
+  - Quitado el `sudo()` innecesario al validar la API key; justificado el del registro de llamadas (medido: sin él, las llamadas con 401 no quedan en el log).
+  - Prueba nueva de que las llamadas fallidas quedan en el log sin la clave (16 tests).
+
+- [x] **Tramo B `payment_request` (Ejercicio 4):**
+  - Modelo `payment.approval.level` (monto mínimo y aprobador); al enviar se asigna el aprobador por monto y se le crea una actividad.
+  - Solo el aprobador asignado aprueba o rechaza; quedan quién aprobó y cuándo.
+  - Wizard de rechazo con motivo obligatorio publicado en el chatter (notifica al solicitante).
+  - Wizard de pago con diario: crea y publica el `account.payment` de proveedor vinculado; no se puede pagar dos veces. Depende de `account`; Tesorería incluye Facturación.
+  - Reporte QWeb PDF con quién aprobó y cuándo.
+  - 21 tests en verde (12 nuevos), 94% de cobertura; cada prueba nueva falla al quitar la regla que cubre.
+
 ---
 
 ## 4. Tarea Actual en Ejecución
 - **Módulos:** `shop_integration_api`, `fleet_inspection`, `sale_commission`, `payment_request`
-- **Objetivo:** Batería oficial completa de los 4 módulos verificada sobre base limpia (`prueba_limpia_audit`) con 36/36 tests en verde (100% de éxito) y 85% de cobertura global consolidada. Tramos A completados rigurosamente según especificaciones de Binaural.
-- **Último avance:** Ejercicio 2 Tramo B completado. Batería oficial sobre `prueba_limpia`: 40/40 tests en verde, 4/4 módulos instalados, 85% de cobertura global.
+- **Objetivo:** Tramos A y B de los 4 ejercicios completados (el ejercicio 3 en el PR de `hotfix/T-200`); quedan los Tramos C.
+- **Último avance:** Ejercicio 4 Tramo B completado. Batería oficial sobre `prueba_limpia` (2026-11-05): 53/53 tests en verde, 4/4 módulos instalados, 87% de cobertura global, 0 avisos de obsolescencia. Siguiente: Tramos C.
