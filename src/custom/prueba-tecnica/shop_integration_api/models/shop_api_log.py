@@ -53,6 +53,9 @@ class ShopApiLog(models.Model):
     @classmethod
     def log_call(cls, env, endpoint, method, status_code, duration, user_id=None, remote_addr=None):
         """Registra la llamada en una transacción independiente para preservarla ante rollbacks."""
+        # sudo() is required: rejected calls (401) run as the public user, which has no
+        # create access on shop.api.log, and every call must be logged. It is limited to
+        # create() on this model; the stored values never include the API key.
         try:
             with env.registry.cursor() as cr:
                 isolated_env = env(cr=cr)

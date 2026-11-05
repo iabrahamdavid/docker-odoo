@@ -18,7 +18,7 @@ Módulo de integración REST para conectar una tienda en línea externa con Odoo
   - Manejo de respuestas 401 JSON si el token falta o es inválido.
   - Endpoint `POST /api/v1/orders` con validación de negocio y códigos HTTP 422 (`CUSTOMER_NOT_FOUND`, `PRODUCT_NOT_FOUND`, `INVALID_QUANTITY`, `EMPTY_LINES`).
   - Creación de pedidos en `sale.order` con estado `draft` (Cotización) y respuesta HTTP 201 Created.
-  - 15 tests automatizados pasando en verde (100% de éxito, 77% de cobertura total).
+  - 16 tests automatizados pasando en verde (100% de éxito, 77% de cobertura total).
 - [ ] **Tramo C:** Paginación con metadatos, idempotencia (`Idempotency-Key`), optimización de stock y webhook de entrega.
 
 ---
@@ -86,6 +86,10 @@ Cada llamada a los endpoints de la API (exitosa o con error 401, 400, 422) se re
    Para garantizar la trazabilidad de seguridad y técnica ante cualquier excepción o rollback en la transacción del endpoint, el registro en `shop.api.log` se realiza abriendo un cursor de base de datos independiente (`env.registry.cursor()`), asegurando que el log se confirme (commit) en PostgreSQL sin importar el resultado de la transacción principal.
 6. **Autenticación con `auth='public'` y decorador `@api_endpoint`:**
    En Odoo, declarar `auth='user'` a nivel de `@http.route` fuerza una redirección HTTP 303 hacia `/web/login` en caso de no existir una cookie de sesión activa de navegador. Para soportar clientes API REST desacoplados que envían cabeceras `Authorization: Bearer <token>` (Tramo B) o sesiones existentes (Tramo A), la ruta se definió con `auth='public'` y la autenticación se delega por completo al decorador `@api_endpoint`.
+7. **Uso de `sudo()`:** el módulo lo usa en un solo sitio, `ShopApiLog.log_call()`, y solo para crear el registro en `shop.api.log`.
+   - **Por qué hace falta:** una llamada rechazada con 401 se ejecuta como usuario público, que no tiene permiso para crear registros en `shop.api.log`, y el log debe guardar todas las llamadas, también las que fallan. Se comprobó quitándolo: la prueba `test_09_failed_calls_are_logged_without_key` falla (`0 != 2`) y Odoo rechaza el registro con *«You are not allowed to create 'Shop API Request Log'»*.
+   - **Qué no hace:** no da acceso a otros modelos ni a otras operaciones, y lo guardado nunca incluye la API key.
+   - **Validación de la API key sin `sudo()`:** `res.users.apikeys._check_credentials()` se llama igual que en el núcleo de Odoo (`ir_http.py`), sin `sudo()`, porque valida la clave con SQL directo y no pasa por los permisos.
 
 ---
 
