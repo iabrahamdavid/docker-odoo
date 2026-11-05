@@ -71,6 +71,24 @@ class PaymentRequest(models.Model):
         required=True,
         default=lambda self: self.env.company,
     )
+    approver_id = fields.Many2one(
+        "res.users",
+        string="Aprobador asignado",
+        readonly=True,
+        copy=False,
+        tracking=True,
+    )
+    approved_by_id = fields.Many2one(
+        "res.users",
+        string="Aprobado por",
+        readonly=True,
+        copy=False,
+    )
+    approved_date = fields.Datetime(
+        string="Fecha de aprobación",
+        readonly=True,
+        copy=False,
+    )
 
     def _compute_display_name(self):
         for req in self:
@@ -92,6 +110,8 @@ class PaymentRequest(models.Model):
                     raise AccessError(_("No tiene autorización para crear solicitudes en un estado diferente a borrador."))
                 if vals.get("name") and vals["name"] != "/":
                     raise AccessError(_("La secuencia de la solicitud es automática y no puede ser manipulada manualmente."))
+            if not self.env.su and {"approver_id", "approved_by_id", "approved_date"} & vals.keys():
+                raise AccessError(_("El aprobador y los datos de aprobación se asignan automáticamente."))
         return super().create(vals_list)
 
     def write(self, vals):
@@ -106,7 +126,12 @@ class PaymentRequest(models.Model):
             if "name" in vals:
                 raise AccessError(_("La secuencia es automática y no puede ser modificada manualmente."))
 
-            # 3. Bloqueo de campos de negocio una vez enviada
+            # 3. The approver is assigned on submit and the approval data is set
+            # on approve; nobody may choose or forge them directly.
+            if {"approver_id", "approved_by_id", "approved_date"} & vals.keys():
+                raise AccessError(_("El aprobador y los datos de aprobación se asignan automáticamente."))
+
+            # 4. Bloqueo de campos de negocio una vez enviada
             restricted_fields = {
                 "partner_id",
                 "applicant_id",
@@ -128,27 +153,50 @@ class PaymentRequest(models.Model):
                 raise UserError(_("Solo se pueden eliminar solicitudes en estado borrador o rechazada."))
         return super().unlink()
 
+    def _get_approval_level(self, levels):
+        """Return the level with the highest minimum amount not above the request
+        amount, comparing in the company currency. ``levels`` is sorted by
+        ``min_amount`` descending."""
+        self.ensure_one()
+        amount = self.currency_id._convert(self.amount, self.company_id.currency_id, self.company_id, self.date)
+        return next((level for level in levels if level.min_amount <= amount), levels.browse())
+
     def action_submit(self):
+        levels = self.env["payment.approval.level"].search([])
         for req in self:
             if req.state != "draft":
                 raise UserError(_("Solo se pueden enviar solicitudes en estado Borrador."))
             if req.amount <= 0.0:
                 raise ValidationError(_("El monto de la solicitud debe ser estrictamente mayor a cero."))
+            level = req._get_approval_level(levels)
+            if not level:
+                raise UserError(_("No hay un nivel de aprobación configurado para este monto. Contacte a Tesorería."))
             seq_name = req.name
             if seq_name == "/":
                 seq_name = self.env["ir.sequence"].next_by_code("payment.request") or "/"
             super(PaymentRequest, req).write({
                 "name": seq_name,
                 "state": "submitted",
+                "approver_id": level.approver_id.id,
             })
+            req.activity_schedule(
+                "mail.mail_activity_data_todo",
+                user_id=level.approver_id.id,
+                summary=_("Aprobar la solicitud de pago %s", seq_name),
+            )
 
     def action_approve(self):
-        if not self.env.user.has_group("payment_request.group_payment_request_approver"):
-            raise AccessError(_("Solo los usuarios autorizados como Aprobadores pueden aprobar solicitudes de pago."))
         for req in self:
             if req.state != "submitted":
                 raise UserError(_("Solo se pueden aprobar solicitudes en estado Enviada."))
-            super(PaymentRequest, req).write({"state": "approved"})
+            if req.approver_id != self.env.user:
+                raise AccessError(_("Solo el aprobador asignado a esta solicitud puede aprobarla."))
+            super(PaymentRequest, req).write({
+                "state": "approved",
+                "approved_by_id": self.env.user.id,
+                "approved_date": fields.Datetime.now(),
+            })
+            req.activity_feedback(["mail.mail_activity_data_todo"])
 
     def action_reject(self):
         if not self.env.user.has_group("payment_request.group_payment_request_approver"):

@@ -20,20 +20,26 @@ class TestPaymentRequest(TransactionCase):
         cls.user_applicant_1 = cls.env["res.users"].create({
             "name": "Solicitante Uno",
             "login": "applicant_1",
+            "email": "applicant_1@example.com",
             "groups_id": [(6, 0, [cls.group_user.id])],
         })
 
         cls.user_applicant_2 = cls.env["res.users"].create({
             "name": "Solicitante Dos",
             "login": "applicant_2",
+            "email": "applicant_2@example.com",
             "groups_id": [(6, 0, [cls.group_user.id])],
         })
 
         cls.user_approver = cls.env["res.users"].create({
             "name": "Gerente Aprobador",
             "login": "approver_1",
+            "email": "approver_1@example.com",
             "groups_id": [(6, 0, [cls.group_approver.id])],
         })
+
+        # Un nivel desde 0 para que toda solicitud tenga aprobador asignado al enviarse
+        cls.env["payment.approval.level"].create({"min_amount": 0.0, "approver_id": cls.user_approver.id})
 
     def _create_request(self, user=None, **kwargs):
         env = self.env(user=user) if user else self.env

@@ -17,7 +17,7 @@
                             type="object"
                             class="oe_highlight"
                             groups="payment_request.group_payment_request_approver"
-                            invisible="state != 'submitted'"/>
+                            invisible="state != 'submitted' or approver_id != uid"/>
                     <button name="action_reject"
                             string="Rechazar"
                             type="object"
@@ -41,6 +41,9 @@
                             <field name="partner_id" readonly="state != 'draft'"/>
                             <field name="applicant_id" readonly="state != 'draft'"/>
                             <field name="date" readonly="state != 'draft'"/>
+                            <field name="approver_id" invisible="not approver_id"/>
+                            <field name="approved_by_id" invisible="not approved_by_id"/>
+                            <field name="approved_date" invisible="not approved_date"/>
                         </group>
                         <group string="Importe y Moneda">
                             <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"/>

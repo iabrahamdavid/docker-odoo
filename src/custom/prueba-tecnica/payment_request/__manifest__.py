@@ -1,6 +1,6 @@
 {
     "name": "Solicitudes de Pago",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "category": "Accounting/Payment",
     "summary": "Gestión de solicitudes de pago a proveedores con flujo de aprobación",
     "author": "Binaural / Abraham David",
@@ -13,6 +13,7 @@
         "security/payment_request_security.xml",
         "security/ir.model.access.csv",
         "data/ir_sequence_data.xml",
+        "views/payment_approval_level_views.xml",
         "views/payment_request_views.xml",
         "views/payment_request_menus.xml",
     ],
